@@ -1,0 +1,45 @@
+[versions]
+ktor = "3.2.3"
+
+[libraries]
+kubernetes = { module = "io.kubernetes:client-java", version = "24.0.0" }
+operator-framework-bom = { module = "io.javaoperatorsdk:operator-framework-bom", version = "5.1.2" }
+operator-framework = { module = "io.javaoperatorsdk:operator-framework", version = "5.1.2" }
+micrometer-support = { module = "io.javaoperatorsdk:micrometer-support", version = "5.1.2" }
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
+ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
+ktor-client-auth = { module = "io.ktor:ktor-client-auth", version.ref = "ktor" }
+jackson-module-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin", version = "2.19.2" }
+jackson-dataformat-yaml = { module = "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml", version = "2.19.2" }
+jackson-datatype-jsr310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310", version = "2.19.2" }
+logback-classic = { module = "ch.qos.logback:logback-classic", version = "1.5.18" }
+kotlin-logging-jvm = { module = "io.github.oshai:kotlin-logging-jvm", version = "7.0.12" }
+
+kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5", version = "5.9.0" }
+kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version = "5.9.0" }
+
+[bundles]
+platform = [
+    "operator-framework-bom",
+]
+
+implementation = [
+    "kubernetes",
+    "operator-framework",
+    "micrometer-support",
+    "jackson-module-kotlin",
+    "jackson-dataformat-yaml",
+    "jackson-datatype-jsr310",
+    "ktor-client-core",
+    "ktor-client-cio",
+    "ktor-client-auth",
+    "logback-classic",
+    "kotlin-logging-jvm",
+]
+
+testImplementation = [
+    "kotest-runner-junit5",
+    "kotest-assertions-core",
+]
+
+[plugins]

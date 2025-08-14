@@ -1,0 +1,54 @@
+apiVersion: "github.platform.benkeil.de/v1alpha1"
+kind: "GitHubRepository"
+metadata:
+  name: "github-operator-example"
+  namespace: "pdh-da"
+spec:
+  owner: "otto-ec"
+  ownerTeam: "pdh-distribution-analytics"
+  collaborators:
+    pdh-da-fkt-github: "admin"
+  description: "A test repository for the GitHub operator example"
+  private: true
+  visibility: "internal"
+  autoInit: true
+  defaultBranch: "main"
+  deleteBranchOnMerge: true
+  allowAutoMerge: true
+  allowSquashMerge: true
+  allowMergeCommit: false
+  allowRebaseMerge: false
+  allowUpdateBranch: true
+  useSquashPrTitleAsDefault: true
+  squashMergeCommitTitle: "PR_TITLE"
+  squashMergeCommitMessage: "PR_BODY"
+  securityAndAnalysis:
+    advancedSecurity:
+      status: "enabled"
+    codeSecurity:
+      status: "enabled"
+    secretScanning:
+      status: "enabled"
+    secretScanningPushProtection:
+      status: "enabled"
+    secretScanningAiDetection:
+      status: "enabled"
+    secretScanningNonProviderPatterns:
+      status: "enabled"
+  automatedSecurityFixes: true
+  autoLinks:
+    - keyPrefix: "DV-"
+      urlTemplate: "https://otto-eg.atlassian.net/browse/DV-<num>"
+      isAlphanumeric: false
+  rulesets:
+    - name: "Default"
+      target: "branch"
+      enforcement: "active"
+      conditions:
+        refName:
+          include:
+            - "~DEFAULT_BRANCH"
+          exclude: [ ]
+      rules:
+        - type: "deletion"
+        - type: "non_fast_forward"
