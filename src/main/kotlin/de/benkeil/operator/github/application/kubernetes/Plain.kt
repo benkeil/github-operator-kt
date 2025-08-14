@@ -19,12 +19,11 @@ class Plain(
   }
 
   fun run() {
-
     val watch: Watch<V1Namespace> =
         Watch.createWatch(
             client,
             api.listNamespace().watch(true).buildCall(null),
-            object : TypeToken<Watch.Response<V1Namespace?>?>() {}.type)
+            object : TypeToken<Watch.Response<V1Namespace>>() {}.type)
 
     try {
       watch.forEach { item ->

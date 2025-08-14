@@ -11,8 +11,8 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import de.benkeil.operator.github.adapter.HttpGitHubService
 import de.benkeil.operator.github.adapter.KubernetesPresenter
-import de.benkeil.operator.github.application.kubernetes.GitHubRepositoryResource
-import de.benkeil.operator.github.application.kubernetes.GitHubRepositoryStatus
+import de.benkeil.operator.github.domain.model.GitHubRepositoryResource
+import de.benkeil.operator.github.domain.model.GitHubRepositoryStatus
 import de.benkeil.operator.github.domain.UpsertRepositoryUseCase
 import java.io.File
 import java.io.InputStream

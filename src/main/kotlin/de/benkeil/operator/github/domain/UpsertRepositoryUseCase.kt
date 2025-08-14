@@ -1,7 +1,7 @@
 package de.benkeil.operator.github.domain
 
-import de.benkeil.operator.github.application.kubernetes.GitHubRepositoryResource
-import de.benkeil.operator.github.application.kubernetes.GitHubRepositoryStatus
+import de.benkeil.operator.github.domain.model.GitHubRepositoryResource
+import de.benkeil.operator.github.domain.model.GitHubRepositoryStatus
 import de.benkeil.operator.github.domain.service.AutoLinkRequest
 import de.benkeil.operator.github.domain.service.CollaboratorRequest
 import de.benkeil.operator.github.domain.service.CreateGitHubRepositoryRequest

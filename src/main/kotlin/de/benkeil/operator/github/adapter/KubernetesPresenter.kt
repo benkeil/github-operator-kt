@@ -1,6 +1,6 @@
 package de.benkeil.operator.github.adapter
 
-import de.benkeil.operator.github.application.kubernetes.GitHubRepositoryStatus
+import de.benkeil.operator.github.domain.model.GitHubRepositoryStatus
 import de.benkeil.operator.github.domain.service.Presenter
 
 class KubernetesPresenter : Presenter<GitHubRepositoryStatus, GitHubRepositoryStatus> {
