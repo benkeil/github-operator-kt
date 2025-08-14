@@ -1,0 +1,15 @@
+{
+  "createdAt": "2025-08-14T19:32:35.284142Z",
+  "updatedAt": "2025-08-14T21:53:37.714425+02:00",
+  "autoLinkKeyPrefixes": {
+    "DV-": 9870388
+  },
+  "ruleSetNames": {
+    "Default": 7388597
+  },
+  "teamPermissionSlugs": [],
+  "collaboratorLogins": [
+    "pdh-da-fkt-github"
+  ],
+  "errors": []
+}

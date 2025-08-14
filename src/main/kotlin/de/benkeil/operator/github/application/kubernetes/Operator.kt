@@ -3,10 +3,6 @@ package de.benkeil.operator.github.application.kubernetes
 import de.benkeil.operator.github.adapter.HttpGitHubService
 import de.benkeil.operator.github.adapter.KubernetesPresenter
 import de.benkeil.operator.github.domain.UpsertRepositoryUseCase
-import de.benkeil.operator.github.domain.model.AutoLink
-import de.benkeil.operator.github.domain.model.Repository
-import de.benkeil.operator.github.domain.model.RuleSet
-import de.benkeil.operator.github.domain.model.Permission
 import de.benkeil.operator.github.domain.service.AutoLinkRequest
 import de.benkeil.operator.github.domain.service.MergeCommitMessage
 import de.benkeil.operator.github.domain.service.MergeCommitTitle
@@ -15,9 +11,12 @@ import de.benkeil.operator.github.domain.service.SecurityAndAnalysis
 import de.benkeil.operator.github.domain.service.SquashMergeCommitMessage
 import de.benkeil.operator.github.domain.service.SquashMergeCommitTitle
 import de.benkeil.operator.github.domain.service.Visibility
+import io.fabric8.generator.annotation.Default
+import io.fabric8.generator.annotation.ValidationRule
 import io.fabric8.kubernetes.api.model.Namespaced
 import io.fabric8.kubernetes.client.CustomResource
 import io.fabric8.kubernetes.model.annotation.Group
+import io.fabric8.kubernetes.model.annotation.Kind
 import io.fabric8.kubernetes.model.annotation.Version
 import io.javaoperatorsdk.operator.Operator
 import io.javaoperatorsdk.operator.api.reconciler.BaseControl
@@ -52,15 +51,13 @@ class GitHubRepositoryReconciler(val useCase: UpsertRepositoryUseCase) :
     Reconciler<GitHubRepositoryResource> {
   companion object {
     val presenter = KubernetesPresenter()
-
-    fun controller(schema: GitHubRepositoryResource): Repository = schema.toRepository()
   }
 
   override fun reconcile(
       resource: GitHubRepositoryResource,
       context: Context<GitHubRepositoryResource>
   ): UpdateControl<GitHubRepositoryResource> = runBlocking {
-    val newStatus = useCase.execute({ controller(resource) }, presenter)
+    val newStatus = useCase.execute({ resource }, presenter)
     resource.status = newStatus
     UpdateControl.patchStatus(resource).rescheduleAfter(12.hours)
   }
@@ -69,15 +66,24 @@ class GitHubRepositoryReconciler(val useCase: UpsertRepositoryUseCase) :
 fun <T> BaseControl<T>.rescheduleAfter(duration: Duration): T where T : BaseControl<T> =
     rescheduleAfter(duration.toJavaDuration())
 
-@Version("v1alpha1")
-@Group("github.platform.benkeil.de")
+@Version(GitHubRepositoryResource.API_VERSION)
+@Group(GitHubRepositoryResource.GROUP)
+@Kind(GitHubRepositoryResource.KIND)
 class GitHubRepositoryResource :
-    CustomResource<GitHubRepositorySpec, GitHubRepositoryStatus>(), Namespaced {}
+    CustomResource<GitHubRepositorySpec, GitHubRepositoryStatus>(), Namespaced {
+  companion object {
+    const val GROUP = "github.platform.benkeil.de"
+    const val API_VERSION = "v1alpha1"
+    const val KIND = "GitHubRepository"
+  }
+}
 
 data class GitHubRepositorySpec(
     val owner: String,
-    val fullName: String? = null,
-    val ownerTeam: String,
+    val name: String,
+    @ValidationRule("oldSelf == null || self == oldSelf") val ownerTeam: String,
+    @ValidationRule("oldSelf == null || self == oldSelf")
+    @Default("admin")
     val ownerRole: String = "admin",
     val description: String? = null,
     val private: Boolean? = null,
@@ -97,79 +103,18 @@ data class GitHubRepositorySpec(
     val securityAndAnalysis: SecurityAndAnalysis? = null,
     val defaultBranch: String? = null,
     val automatedSecurityFixes: Boolean? = null,
-    val autoLinks: List<AutoLinkRequest>? = null,
-    val teamPermissions: Map<String, String>? = null,
-    val collaborators: Map<String, String>? = null,
-    val rulesets: List<RuleSetRequest>? = null,
+    val autoLinks: List<AutoLinkRequest> = emptyList(),
+    val teamPermissions: Map<String, String> = emptyMap(),
+    val collaborators: Map<String, String> = emptyMap(),
+    val rulesets: List<RuleSetRequest> = emptyList(),
 )
 
 data class GitHubRepositoryStatus(
-    val createdAt: OffsetDateTime? = null,
-    val updatedAt: OffsetDateTime? = null,
-    val autoLinkKeyPrefixes: List<String>? = null,
-    val teamPermissionSlugs: List<String>? = null,
-    val collaboratorLogins: List<String>? = null,
-    val error: String? = null,
+    val createdAt: OffsetDateTime,
+    var updatedAt: OffsetDateTime? = null,
+    var autoLinkKeyPrefixes: Map<String, Int> = mapOf(),
+    var ruleSetNames: Map<String, Int> = mapOf(),
+    var teamPermissionSlugs: Set<String> = setOf(),
+    var collaboratorLogins: Set<String> = setOf(),
+    val errors: MutableList<String> = mutableListOf(),
 )
-
-fun GitHubRepositoryResource.toRepository(): Repository =
-    Repository(
-        owner = spec.owner,
-        ownerTeam = spec.ownerTeam,
-        ownerRole = spec.ownerRole,
-        name = "${metadata.namespace}_${metadata.name}",
-        description = spec.description,
-        private = spec.private,
-        visibility = spec.visibility,
-        autoInit = spec.autoInit,
-        deleteBranchOnMerge = spec.deleteBranchOnMerge,
-        allowAutoMerge = spec.allowAutoMerge,
-        allowSquashMerge = spec.allowSquashMerge,
-        allowMergeCommit = spec.allowMergeCommit,
-        allowRebaseMerge = spec.allowRebaseMerge,
-        allowUpdateBranch = spec.allowUpdateBranch,
-        useSquashPrTitleAsDefault = spec.useSquashPrTitleAsDefault,
-        squashMergeCommitTitle = spec.squashMergeCommitTitle,
-        squashMergeCommitMessage = spec.squashMergeCommitMessage,
-        mergeCommitTitle = spec.mergeCommitTitle,
-        mergeCommitMessage = spec.mergeCommitMessage,
-        securityAndAnalysis = spec.securityAndAnalysis,
-        defaultBranch = spec.defaultBranch,
-        automatedSecurityFixes = spec.automatedSecurityFixes ?: false,
-        autoLinks =
-            spec.autoLinks?.map {
-              AutoLink(
-                  keyPrefix = it.keyPrefix,
-                  urlTemplate = it.urlTemplate,
-                  isAlphanumeric = it.isAlphanumeric,
-                  delete = false,
-              )
-            },
-        teamPermissions =
-            spec.teamPermissions?.map { (slug, role) ->
-              Permission(
-                  slug = slug,
-                  role = role,
-                  delete = false,
-              )
-            },
-        collaborators =
-            spec.collaborators?.map { (slug, role) ->
-              Permission(
-                  slug = slug,
-                  role = role,
-                  delete = false,
-              )
-            },
-        rulesets =
-            spec.rulesets?.map { ruleSetRequest ->
-              RuleSet(
-                  name = ruleSetRequest.name,
-                  target = ruleSetRequest.target,
-                  enforcement = ruleSetRequest.enforcement,
-                  conditions = ruleSetRequest.conditions,
-                  rules = ruleSetRequest.rules,
-                  delete = false,
-              )
-            },
-    )

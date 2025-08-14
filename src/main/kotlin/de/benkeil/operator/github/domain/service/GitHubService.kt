@@ -20,7 +20,11 @@ interface GitHubService {
 
   suspend fun getAutoLinks(owner: String, name: String): List<AutoLinkResponse>
 
-  suspend fun createAutoLink(owner: String, name: String, autoLink: AutoLinkRequest)
+  suspend fun createAutoLink(
+      owner: String,
+      name: String,
+      autoLink: AutoLinkRequest
+  ): AutoLinkResponse
 
   suspend fun deleteAutoLink(owner: String, name: String, autoLinkId: Int)
 
@@ -28,21 +32,35 @@ interface GitHubService {
 
   suspend fun upsertTeamPermission(owner: String, name: String, team: TeamPermissionRequest)
 
-  suspend fun deleteTeamPermission(owner: String, name: String, teamSlug: String)
+  suspend fun deleteTeamPermission(
+      owner: String,
+      name: String,
+      organization: String,
+      teamSlug: String,
+  )
 
   suspend fun getCollaborators(owner: String, name: String): List<Collaborator>
 
-  suspend fun upsertCollaborators(owner: String, name: String, team: CollaboratorRequest)
+  suspend fun upsertCollaborators(
+      owner: String,
+      name: String,
+      team: CollaboratorRequest
+  ): Collaborator?
 
   suspend fun deleteCollaborator(owner: String, name: String, login: String)
 
   suspend fun getRuleSets(owner: String, name: String): List<RuleSetResponse>
 
-  suspend fun createRuleSet(owner: String, name: String, ruleSet: RuleSetRequest)
+  suspend fun createRuleSet(owner: String, name: String, ruleSet: RuleSetRequest): RuleSetResponse
 
-  suspend fun updateRuleSet(owner: String, name: String, id: String, ruleSet: RuleSetRequest)
+  suspend fun updateRuleSet(
+      owner: String,
+      name: String,
+      id: Int,
+      ruleSet: RuleSetRequest
+  ): RuleSetResponse
 
-  suspend fun deleteRuleSet(owner: String, name: String, id: String)
+  suspend fun deleteRuleSet(owner: String, name: String, id: Int)
 }
 
 data class RuleSetRequest(
@@ -86,16 +104,12 @@ enum class MergeMethods {
   override fun toString(): String = name.lowercase()
 }
 
-data class RuleDeletion(val type: String)
-
-data class RuleNonFastForward(val type: String = "non_fast_forward")
-
 data class RuleSetResponse(
-    val id: String,
+    val id: Int,
     val name: String,
     val target: String,
     val enforcement: String,
-    val conditions: List<RuleSetCondition>?,
+    val conditions: RuleSetCondition?,
     val rules: List<Rule>?,
 )
 

@@ -2,11 +2,7 @@ package de.benkeil.operator.github.domain
 
 import de.benkeil.operator.github.application.kubernetes.GitHubRepositoryResource
 import de.benkeil.operator.github.application.kubernetes.GitHubRepositoryStatus
-import de.benkeil.operator.github.domain.model.AutoLink
-import de.benkeil.operator.github.domain.model.Permission
-import de.benkeil.operator.github.domain.model.RuleSet
 import de.benkeil.operator.github.domain.service.AutoLinkRequest
-import de.benkeil.operator.github.domain.service.AutoLinkResponse
 import de.benkeil.operator.github.domain.service.CollaboratorRequest
 import de.benkeil.operator.github.domain.service.CreateGitHubRepositoryRequest
 import de.benkeil.operator.github.domain.service.GitHubService
@@ -25,13 +21,14 @@ class UpsertRepositoryUseCase(
 
   suspend fun <T> execute(
       controller: () -> GitHubRepositoryResource,
-      presenter: Presenter<GitHubRepositoryStatus, T>
+      presenter: Presenter<GitHubRepositoryStatus, T>,
   ): T {
     val resource = controller()
     val repository = resource.spec
+    val status = resource.status ?: GitHubRepositoryStatus(createdAt = OffsetDateTime.now())
 
     val owner = repository.owner
-    val name = resource.name
+    val name = repository.name
 
     if (gitHubService.getRepository(owner, name) == null) {
       gitHubService.createRepository(resource.toCreateGitHubRepositoryRequest())
@@ -48,156 +45,120 @@ class UpsertRepositoryUseCase(
       )
     }
 
+    /*
+     * Repository
+     */
     gitHubService.updateRepository(resource.toUpdateGitHubRepositoryRequest())
 
-    val existingTeamPermission = gitHubService.getTeamPermissions(owner, name)
+    /*
+     * Additional Team permissions
+     */
+    status.teamPermissionSlugs
+        .filter { !repository.teamPermissions.containsKey(it) }
+        .forEach {
+          logger.info { "Deleting team permission for $it" }
+          gitHubService.deleteTeamPermission(owner, name, owner, it)
+        }
     repository.teamPermissions
-        ?.map { (slug, role) ->
-          Permission(
-              slug = slug,
-              role = role,
-              delete = false,
+        .filter { (slug, role) -> repository.ownerTeam != slug }
+        .map { (slug, role) ->
+          logger.info { "Setting team permission for $slug with role $role" }
+          gitHubService.upsertTeamPermission(
+              owner,
+              name,
+              TeamPermissionRequest(organization = owner, slug = slug, role = role),
           )
+          slug
         }
-        ?.filter { repository.ownerTeam != it.slug }
-        ?.forEach { teamPermission ->
-          when (teamPermission.delete) {
-            true -> {
-              logger.info {
-                "Remove team permission for ${teamPermission.slug} with role ${teamPermission.role}"
-              }
-              gitHubService.deleteTeamPermission(owner, name, teamPermission.slug)
-            }
-            false -> {
-              logger.info {
-                "Setting team permission for ${teamPermission.slug} with role ${teamPermission.role}"
-              }
-              gitHubService.upsertTeamPermission(
-                  owner,
-                  name,
-                  TeamPermissionRequest(
-                      organization = owner,
-                      slug = teamPermission.slug,
-                      role = teamPermission.role,
-                  ),
-              )
-            }
-          }
-        }
+        .also { list -> status.teamPermissionSlugs = list.toSet() }
 
-    val existingCollaborators = gitHubService.getCollaborators(owner, name)
+    /*
+     * Adding collaborators
+     */
+    status.collaboratorLogins
+        .filter { !repository.collaborators.containsKey(it) }
+        .forEach {
+          logger.info { "Deleting collaborator $it" }
+          gitHubService.deleteCollaborator(owner, name, it)
+        }
+    val existingCollaborators = gitHubService.getCollaborators(owner, name).toSet()
     repository.collaborators
-        ?.map { (slug, role) ->
-          Permission(
-              slug = slug,
-              role = role,
-              delete = false,
-          )
+        .map { (login, role) ->
+          logger.info { "Setting collaborator $login with role $role" }
+          gitHubService.upsertCollaborators(
+              owner, name, CollaboratorRequest(login = login, role = role))
+              ?: existingCollaborators.first { it.login == login }
         }
-        ?.forEach { collaborator ->
-          when (collaborator.delete) {
-            true -> gitHubService.deleteCollaborator(owner, name, collaborator.slug)
-            false ->
-                gitHubService.upsertCollaborators(
-                    owner,
-                    name,
-                    CollaboratorRequest(
-                        login = collaborator.slug,
-                        role = collaborator.role,
-                    ),
-                )
-          }
-        }
+        .also { list -> status.collaboratorLogins = list.map { it.login }.toSet() }
 
+    /*
+     * Advances Security
+     */
     when (repository.automatedSecurityFixes) {
-      true -> gitHubService.enableAutomatedSecurityFixes(owner, name)
-      false -> gitHubService.disableAutomatedSecurityFixes(owner, name)
+      true -> {
+        logger.info { "Enabling automated security fixes" }
+        gitHubService.enableAutomatedSecurityFixes(owner, name)
+      }
+      false -> {
+        logger.info { "Disabling automated security fixes" }
+        gitHubService.disableAutomatedSecurityFixes(owner, name)
+      }
       null -> Unit
     }
 
+    /*
+     * Auto Links
+     */
+    status.autoLinkKeyPrefixes
+        .filter { (keyPrefix) -> repository.autoLinks.none { it.keyPrefix == keyPrefix } }
+        .forEach { (keyPrefix, id) ->
+          logger.info { "Deleting auto link for key prefix $keyPrefix" }
+          gitHubService.deleteAutoLink(owner, name, id)
+        }
     val existingAutoLinks = gitHubService.getAutoLinks(owner, name)
-    val existingAutoLinkKeys = existingAutoLinks.map { it.keyPrefix }
-    repository.autoLinks
-        ?.map {
-          AutoLink(
-              keyPrefix = it.keyPrefix,
-              urlTemplate = it.urlTemplate,
-              isAlphanumeric = it.isAlphanumeric,
-              delete = false,
-          )
-        }
-        ?.forEach { autoLink ->
-          when (autoLink.delete) {
-            true ->
-                if (existingAutoLinkKeys.contains(autoLink.keyPrefix)) {
-                  gitHubService.deleteAutoLink(
-                      owner,
-                      name,
-                      existingAutoLinks.firstByKeyPrefix(autoLink.keyPrefix).id,
-                  )
-                }
-
-            false ->
-                if (!existingAutoLinkKeys.contains(autoLink.keyPrefix)) {
-                  gitHubService.createAutoLink(
-                      owner = owner,
-                      name = name,
-                      autoLink =
-                          AutoLinkRequest(
-                              keyPrefix = autoLink.keyPrefix,
-                              urlTemplate = autoLink.urlTemplate,
-                              isAlphanumeric = autoLink.isAlphanumeric,
-                          ),
-                  )
-                }
-          }
-        }
+    val createdAutoLinks =
+        repository.autoLinks
+            .filter { autolink -> existingAutoLinks.none { it.keyPrefix == autolink.keyPrefix } }
+            .map {
+              gitHubService.createAutoLink(
+                  owner = owner,
+                  name = name,
+                  autoLink =
+                      AutoLinkRequest(
+                          keyPrefix = it.keyPrefix,
+                          urlTemplate = it.urlTemplate,
+                          isAlphanumeric = it.isAlphanumeric,
+                      ),
+              )
+            }
+    status.autoLinkKeyPrefixes =
+        createdAutoLinks.plus(existingAutoLinks).associate { it.keyPrefix to it.id }
 
     val existingRuleSets = gitHubService.getRuleSets(owner, name)
-    println("existingRuleSets: $existingRuleSets")
-    repository.rulesets
-        ?.map {
-          RuleSet(
-              name = it.name,
-              target = it.target,
-              enforcement = it.enforcement,
-              conditions = it.conditions,
-              rules = it.rules,
-              delete = false,
-          )
+    status.ruleSetNames
+        .filter { (name) -> repository.rulesets.none { it.name == name } }
+        .forEach { (name, id) ->
+          logger.info { "Deleting rule set $name with id $id" }
+          gitHubService.deleteRuleSet(owner, name, id)
         }
-        ?.forEach { ruleSet ->
-          when (ruleSet.delete) {
-            true ->
-                existingRuleSets
-                    .firstOrNull { it.name == ruleSet.name }
-                    ?.also { gitHubService.deleteRuleSet(owner, name, it.id) }
-            false -> {
-              val existingRuleSet = existingRuleSets.firstOrNull { it.name == ruleSet.name }
-              if (existingRuleSet != null) {
-                gitHubService.updateRuleSet(
-                    owner = owner,
-                    name = name,
-                    id = existingRuleSet.id,
-                    ruleSet = ruleSet.toRuleSetRequest(),
-                )
-              } else {
-                gitHubService.createRuleSet(
-                    owner = owner,
-                    name = name,
-                    ruleSet = ruleSet.toRuleSetRequest(),
-                )
-              }
-            }
+    repository.rulesets
+        .map { ruleSet ->
+          val existingRuleSet = existingRuleSets.firstOrNull { it.name == ruleSet.name }
+          if (existingRuleSet != null) {
+            logger.info { "Updating rule set ${ruleSet.name} with id ${existingRuleSet.id}" }
+            gitHubService.updateRuleSet(
+                owner = owner, name = name, id = existingRuleSet.id, ruleSet = ruleSet)
+          } else {
+            logger.info { "Creating rule set ${ruleSet.name}" }
+            gitHubService.createRuleSet(owner = owner, name = name, ruleSet = ruleSet)
           }
         }
+        .also { list -> status.ruleSetNames = list.associate { it.name to it.id } }
 
-    return presenter.ok(GitHubRepositoryStatus(updatedAt = OffsetDateTime.now()))
+    status.updatedAt = OffsetDateTime.now()
+    return presenter.ok(status)
   }
 }
-
-val GitHubRepositoryResource.name: String
-  get() = spec.fullName ?: "${metadata.namespace}_${metadata.name}"
 
 fun GitHubRepositoryResource.toCreateGitHubRepositoryRequest(): CreateGitHubRepositoryRequest =
     with(spec) {
@@ -235,15 +196,3 @@ fun GitHubRepositoryResource.toUpdateGitHubRepositoryRequest(): UpdateGitHubRepo
           securityAndAnalysis = securityAndAnalysis,
       )
     }
-
-fun List<AutoLinkResponse>.firstByKeyPrefix(keyPrefix: String) = first { it.keyPrefix == keyPrefix }
-
-fun RuleSet.toRuleSetRequest(): de.benkeil.operator.github.domain.service.RuleSetRequest {
-  return de.benkeil.operator.github.domain.service.RuleSetRequest(
-      name = name,
-      target = target,
-      enforcement = enforcement,
-      conditions = conditions,
-      rules = rules,
-  )
-}

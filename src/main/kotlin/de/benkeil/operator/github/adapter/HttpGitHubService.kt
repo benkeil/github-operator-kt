@@ -134,18 +134,22 @@ class HttpGitHubService(
         }
       }
 
-  override suspend fun createAutoLink(owner: String, name: String, autoLink: AutoLinkRequest) {
-    client
-        .post("repos/$owner/$name/autolinks") {
-          contentType(Application.Json)
-          setBody(mapper.writeValueAsString(autoLink))
-        }
-        .let { response ->
-          if (!response.status.isSuccess()) {
-            error("Failed to create auto link: ${response.status.value}")
+  override suspend fun createAutoLink(
+      owner: String,
+      name: String,
+      autoLink: AutoLinkRequest
+  ): AutoLinkResponse =
+      client
+          .post("repos/$owner/$name/autolinks") {
+            contentType(Application.Json)
+            setBody(mapper.writeValueAsString(autoLink))
           }
-        }
-  }
+          .let { response ->
+            if (!response.status.isSuccess()) {
+              error("Failed to create auto link: ${response.status.value}")
+            }
+            mapper.readValue(response.bodyAsBytes(), AutoLinkResponse::class.java)
+          }
 
   override suspend fun deleteAutoLink(owner: String, name: String, autoLinkId: Int) {
     client.delete("repos/$owner/$name/autolinks/$autoLinkId").let { response ->
@@ -188,35 +192,60 @@ class HttpGitHubService(
         }
   }
 
-  override suspend fun deleteTeamPermission(owner: String, name: String, teamSlug: String) {
-    TODO("Not yet implemented")
+  override suspend fun deleteTeamPermission(
+      owner: String,
+      name: String,
+      organization: String,
+      teamSlug: String
+  ) {
+    client.delete("orgs/$organization/teams/$teamSlug/repos/$owner/$name").let { response ->
+      if (!response.status.isSuccess()) {
+        error(
+            "Failed to delete team permission: ${response.status.value} - ${response.bodyAsText()}")
+      }
+    }
   }
 
   override suspend fun getCollaborators(owner: String, name: String): List<Collaborator> =
-      client.get("repos/$owner/$name/collaborators").let { response ->
-        if (response.status.isSuccess()) {
-          mapper.readValue(
-              response.bodyAsBytes(),
-              object : TypeReference<List<Collaborator>>() {},
-          )
-        } else {
-          error("Failed to get collaborators: ${response.status.value}")
-        }
-      }
-
-  override suspend fun upsertCollaborators(owner: String, name: String, team: CollaboratorRequest) {
-    client
-        .put("repos/$owner/$name/collaborators/${team.login}") {
-          contentType(Application.Json)
-          setBody(mapper.writeValueAsString(UpdateTeamPermissionRequest(team.role)))
-        }
-        .let { response ->
-          if (!response.status.isSuccess()) {
-            error(
-                "Failed to update collaborator: ${response.status.value} - ${response.bodyAsText()}")
+      client
+          .get("repos/$owner/$name/collaborators") {
+            parameter("per_page", 100)
+            parameter("affiliation", "direct")
           }
-        }
-  }
+          .let { response ->
+            if (response.status.isSuccess()) {
+              mapper.readValue(
+                  response.bodyAsBytes(),
+                  object : TypeReference<List<Collaborator>>() {},
+              )
+            } else {
+              error("Failed to get collaborators: ${response.status.value}")
+            }
+          }
+
+  override suspend fun upsertCollaborators(
+      owner: String,
+      name: String,
+      team: CollaboratorRequest
+  ): Collaborator? =
+      client
+          .put("repos/$owner/$name/collaborators/${team.login}") {
+            contentType(Application.Json)
+            setBody(mapper.writeValueAsString(UpdateTeamPermissionRequest(team.role)))
+          }
+          .let { response ->
+            when {
+              response.status == HttpStatusCode.NoContent -> null
+              !response.status.isSuccess() ->
+                  error(
+                      "Failed to update collaborator: ${response.status.value} - ${response.bodyAsText()}")
+              response.status == HttpStatusCode.Created ->
+                  mapper.readValue(response.bodyAsBytes(), Collaborator::class.java)
+              else ->
+                  error(
+                      "Unexpected response when updating collaborator: ${response.status.value} - ${response.bodyAsText()}")
+            }
+          }
 
   override suspend fun deleteCollaborator(owner: String, name: String, login: String) {
     client.delete("repos/$owner/$name/collaborators/$login").let { response ->
@@ -238,38 +267,44 @@ class HttpGitHubService(
         }
       }
 
-  override suspend fun createRuleSet(owner: String, name: String, ruleSet: RuleSetRequest) {
-    client
-        .post("repos/$owner/$name/rulesets") {
-          contentType(Application.Json)
-          setBody(mapper.writeValueAsString(ruleSet))
-        }
-        .let { response ->
-          if (!response.status.isSuccess()) {
-            error("Failed to create rule set: ${response.status.value} - ${response.bodyAsText()}")
+  override suspend fun createRuleSet(
+      owner: String,
+      name: String,
+      ruleSet: RuleSetRequest
+  ): RuleSetResponse =
+      client
+          .post("repos/$owner/$name/rulesets") {
+            contentType(Application.Json)
+            setBody(mapper.writeValueAsString(ruleSet))
           }
-        }
-  }
+          .let { response ->
+            if (!response.status.isSuccess()) {
+              error(
+                  "Failed to create rule set: ${response.status.value} - ${response.bodyAsText()}")
+            }
+            mapper.readValue(response.bodyAsBytes(), RuleSetResponse::class.java)
+          }
 
   override suspend fun updateRuleSet(
       owner: String,
       name: String,
-      id: String,
+      id: Int,
       ruleSet: RuleSetRequest
-  ) {
-    client
-        .put("repos/$owner/$name/rulesets/$id") {
-          contentType(Application.Json)
-          setBody(mapper.writeValueAsString(ruleSet))
-        }
-        .let { response ->
-          if (!response.status.isSuccess()) {
-            error("Failed to update rule set: ${response.status.value} - ${response.bodyAsText()}")
+  ): RuleSetResponse =
+      client
+          .put("repos/$owner/$name/rulesets/$id") {
+            contentType(Application.Json)
+            setBody(mapper.writeValueAsString(ruleSet))
           }
-        }
-  }
+          .let { response ->
+            if (!response.status.isSuccess()) {
+              error(
+                  "Failed to update rule set: ${response.status.value} - ${response.bodyAsText()}")
+            }
+            mapper.readValue(response.bodyAsBytes(), RuleSetResponse::class.java)
+          }
 
-  override suspend fun deleteRuleSet(owner: String, name: String, id: String) {
+  override suspend fun deleteRuleSet(owner: String, name: String, id: Int) {
     client.delete("repos/$owner/$name/rulesets/$id").let { response ->
       if (!response.status.isSuccess()) {
         error("Failed to delete rule set: ${response.status.value} - ${response.bodyAsText()}")

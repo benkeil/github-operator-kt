@@ -5,9 +5,12 @@ metadata:
   namespace: "pdh-da"
 spec:
   owner: "otto-ec"
+  name: "pdh-da_github-operator-example"
   ownerTeam: "pdh-distribution-analytics"
   collaborators:
     pdh-da-fkt-github: "admin"
+#  teamPermissions:
+#    pdh-condition-deal: "pull"
   description: "A test repository for the GitHub operator example"
   private: true
   visibility: "internal"
