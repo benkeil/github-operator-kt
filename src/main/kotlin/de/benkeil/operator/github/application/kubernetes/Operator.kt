@@ -13,7 +13,7 @@ import de.benkeil.operator.github.domain.UpsertAutoLinksUseCase
 import de.benkeil.operator.github.domain.UpsertCollaboratorsUseCase
 import de.benkeil.operator.github.domain.UpsertRepositoryUseCase
 import de.benkeil.operator.github.domain.UpsertRuleSetsUseCase
-import de.benkeil.operator.github.domain.UpsertTeamUseCase
+import de.benkeil.operator.github.domain.UpsertTeamsUseCase
 import de.benkeil.operator.github.domain.model.GitHubRepositoryResource
 import io.fabric8.kubernetes.client.Config
 import io.fabric8.kubernetes.client.ConfigBuilder
@@ -37,7 +37,7 @@ import kotlinx.coroutines.runBlocking
 fun main() {
   val gitHubToken = System.getenv("GITHUB_TOKEN")
   val gitHubService = HttpGitHubService(gitHubToken)
-  val upsertTeamUseCase = UpsertTeamUseCase(gitHubService)
+  val upsertTeamsUseCase = UpsertTeamsUseCase(gitHubService)
   val upsertCollaboratorsUseCase = UpsertCollaboratorsUseCase(gitHubService)
   val updateAutomatedSecurityFixesUseCase = UpdateAutomatedSecurityFixesUseCase(gitHubService)
   val upsertAutoLinksUseCase = UpsertAutoLinksUseCase(gitHubService)
@@ -45,7 +45,7 @@ fun main() {
   val useCase =
       UpsertRepositoryUseCase(
           gitHubService,
-          upsertTeamUseCase,
+          upsertTeamsUseCase,
           upsertCollaboratorsUseCase,
           updateAutomatedSecurityFixesUseCase,
           upsertAutoLinksUseCase,

@@ -13,7 +13,7 @@ import kotlinx.coroutines.delay
 
 class UpsertRepositoryUseCase(
     private val gitHubService: GitHubService,
-    private val upsertTeamUseCase: UpsertTeamUseCase,
+    private val upsertTeamsUseCase: UpsertTeamsUseCase,
     private val upsertCollaboratorsUseCase: UpsertCollaboratorsUseCase,
     private val updateAutomatedSecurityFixesUseCase: UpdateAutomatedSecurityFixesUseCase,
     private val upsertAutoLinksUseCase: UpsertAutoLinksUseCase,
@@ -37,17 +37,17 @@ class UpsertRepositoryUseCase(
       logger.info { "Repository $owner/$name does not exist, creating it." }
       gitHubService.createRepository(resource.toCreateGitHubRepositoryRequest())
       // TODO poll and wait until the repository is created
-      delay(5.seconds)
+      // delay(5.seconds)
     }
 
     // TODO check if different from existing repository
     gitHubService.updateRepository(resource.toUpdateGitHubRepositoryRequest())
 
-    upsertTeamUseCase.execute {
-      UpsertTeamUseCase.Input(
+    upsertTeamsUseCase.execute {
+      UpsertTeamsUseCase.Input(
           owner = owner,
           name = name,
-          teamPermissions = spec.teams,
+          teams = spec.teams,
       )
     }
 

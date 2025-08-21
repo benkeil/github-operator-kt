@@ -22,11 +22,7 @@ interface GitHubService {
 
   suspend fun getAutoLinks(owner: String, name: String): List<AutoLinkResponse>
 
-  suspend fun createAutoLink(
-      owner: String,
-      name: String,
-      autoLink: AutoLink
-  ): AutoLinkResponse
+  suspend fun createAutoLink(owner: String, name: String, autoLink: AutoLink): AutoLinkResponse
 
   suspend fun deleteAutoLink(owner: String, name: String, autoLinkId: Int)
 
@@ -64,8 +60,8 @@ data class RuleSet(
     @Required val name: String,
     @Required val target: String,
     @Required val enforcement: String,
-    val conditions: RuleSetCondition,
-    val rules: List<Rule<*>>,
+    val conditions: RuleSetCondition?,
+    val rules: List<Rule<*>>?,
 )
 
 data class RuleSetCondition(@Required val refName: RefName)
@@ -82,9 +78,9 @@ data class RefName(@Required val include: List<String>, @Required val exclude: L
             JsonSubTypes.Type(value = Rule.PullRequest::class, name = "pull_request"),
         ])
 abstract class Rule<P>(@Required val type: String, open val parameters: P? = null) {
-  class Deletion : Rule<Unit>("deletion")
+  object Deletion : Rule<Unit>("deletion")
 
-  class NonFastForward : Rule<Unit>("non_fast_forward")
+  object NonFastForward : Rule<Unit>("non_fast_forward")
 
   // @JsonTypeName("pull_request")
   data class PullRequest(override val parameters: Parameters) :
@@ -120,8 +116,8 @@ data class RuleSetResponse(
 )
 
 data class CreateGitHubRepositoryRequest(
-    val name: String,
     val owner: String,
+    val name: String,
     val description: String?,
     val private: Boolean?,
     val visibility: Visibility?,
@@ -202,8 +198,8 @@ enum class Status {
 }
 
 data class GitHubRepositoryResponse(
-    val owner: User,
     val name: String,
+    val owner: User,
     val fullName: String?,
     val description: String?,
     val private: Boolean?,
