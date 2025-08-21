@@ -1,6 +1,6 @@
 package de.benkeil.operator.github.domain.model
 
-import de.benkeil.operator.github.domain.service.AutoLink
+import com.fasterxml.jackson.annotation.JsonProperty
 import de.benkeil.operator.github.domain.service.MergeCommitMessage
 import de.benkeil.operator.github.domain.service.MergeCommitTitle
 import de.benkeil.operator.github.domain.service.RuleSet
@@ -64,4 +64,10 @@ data class GitHubRepositoryStatus(
     val createdAt: OffsetDateTime,
     var updatedAt: OffsetDateTime? = null,
     val errorMessages: MutableList<String> = mutableListOf(),
+)
+
+data class AutoLink(
+    val keyPrefix: String,
+    val urlTemplate: String,
+    @get:JsonProperty("isAlphanumeric") val isAlphanumeric: Boolean,
 )

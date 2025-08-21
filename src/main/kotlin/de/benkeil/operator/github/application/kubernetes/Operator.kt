@@ -91,14 +91,14 @@ class GitHubRepositoryReconciler(
     withLoggingContext(
         "namespace" to resource.metadata.namespace,
         "name" to resource.metadata.name,
+        "owner" to resource.spec.owner,
         "repository" to resource.spec.name,
     ) {
       logger.info { "Reconciling ${resource.spec.name}" }
       val newStatus = useCase.execute({ resource }, presenter)
       resource.status = newStatus
-      UpdateControl.patchStatus(resource).rescheduleAfter(12.hours).also {
-        logger.info { "Successfully reconciled ${resource.spec.name}" }
-      }
+      logger.info { "Successfully reconciled ${resource.spec.name}" }
+      UpdateControl.patchStatus(resource).rescheduleAfter(12.hours)
     }
   }
 }

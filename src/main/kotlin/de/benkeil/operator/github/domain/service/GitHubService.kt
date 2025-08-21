@@ -22,7 +22,11 @@ interface GitHubService {
 
   suspend fun getAutoLinks(owner: String, name: String): List<AutoLinkResponse>
 
-  suspend fun createAutoLink(owner: String, name: String, autoLink: AutoLink): AutoLinkResponse
+  suspend fun createAutoLink(
+      owner: String,
+      name: String,
+      autoLink: AutoLinkRequest
+  ): AutoLinkResponse
 
   suspend fun deleteAutoLink(owner: String, name: String, autoLinkId: Int)
 
@@ -233,10 +237,10 @@ data class User(
     val login: String,
 )
 
-data class AutoLink(
+data class AutoLinkRequest(
     val keyPrefix: String,
     val urlTemplate: String,
-    @get:JsonProperty("isAlphanumeric") val isAlphanumeric: Boolean,
+    @get:JsonProperty("is_alphanumeric") val isAlphanumeric: Boolean,
 )
 
 data class AutoLinkResponse(

@@ -3,6 +3,7 @@ package de.benkeil
 import imports.de.benkeil.platform.github.Repository
 import imports.de.benkeil.platform.github.RepositorySpec
 import imports.de.benkeil.platform.github.RepositorySpecAutoLinks
+import imports.de.benkeil.platform.github.RepositorySpecCollaborators
 import imports.de.benkeil.platform.github.RepositorySpecRulesets
 import imports.de.benkeil.platform.github.RepositorySpecRulesetsConditions
 import imports.de.benkeil.platform.github.RepositorySpecRulesetsConditionsRefName
@@ -12,6 +13,15 @@ import imports.de.benkeil.platform.github.RepositorySpecSecurityAndAnalysisAdvan
 import imports.de.benkeil.platform.github.RepositorySpecSecurityAndAnalysisAdvancedSecurityStatus
 import imports.de.benkeil.platform.github.RepositorySpecSecurityAndAnalysisCodeSecurity
 import imports.de.benkeil.platform.github.RepositorySpecSecurityAndAnalysisCodeSecurityStatus
+import imports.de.benkeil.platform.github.RepositorySpecSecurityAndAnalysisSecretScanning
+import imports.de.benkeil.platform.github.RepositorySpecSecurityAndAnalysisSecretScanningAiDetection
+import imports.de.benkeil.platform.github.RepositorySpecSecurityAndAnalysisSecretScanningAiDetectionStatus
+import imports.de.benkeil.platform.github.RepositorySpecSecurityAndAnalysisSecretScanningNonProviderPatterns
+import imports.de.benkeil.platform.github.RepositorySpecSecurityAndAnalysisSecretScanningNonProviderPatternsStatus
+import imports.de.benkeil.platform.github.RepositorySpecSecurityAndAnalysisSecretScanningPushProtection
+import imports.de.benkeil.platform.github.RepositorySpecSecurityAndAnalysisSecretScanningPushProtectionStatus
+import imports.de.benkeil.platform.github.RepositorySpecSecurityAndAnalysisSecretScanningStatus
+import imports.de.benkeil.platform.github.RepositorySpecTeams
 import imports.de.benkeil.platform.github.RepositorySpecVisibility
 import org.cdk8s.ApiObjectMetadata
 import org.cdk8s.Chart
@@ -37,10 +47,28 @@ class RepositoriesChart(scope: Construct, environment: Environment) :
               RepositorySpec.builder()
                   .name(repo)
                   .owner(environment.owner)
-                  .ownerTeam(environment.ownerTeam)
                   .visibility(RepositorySpecVisibility.INTERNAL)
                   .privateValue(true)
-                  .collaborators(mapOf(environment.functionalTeamUser to "admin"))
+                  .autoInit(true)
+                  .defaultBranch("main")
+                  .collaborators(
+                      listOf(
+                          RepositorySpecCollaborators.builder()
+                              .name(environment.functionalTeamUser)
+                              .permission("admin")
+                              .build(),
+                          RepositorySpecCollaborators.builder()
+                              .name("benkeil")
+                              .permission("admin")
+                              .build(),
+                      ))
+                  .teams(
+                      listOf(
+                          RepositorySpecTeams.builder()
+                              .name(environment.ownerTeam)
+                              .permission("admin")
+                              .build(),
+                      ))
                   .securityAndAnalysis(
                       RepositorySpecSecurityAndAnalysis.builder()
                           .advancedSecurity(
@@ -53,6 +81,31 @@ class RepositoriesChart(scope: Construct, environment: Environment) :
                               RepositorySpecSecurityAndAnalysisCodeSecurity.builder()
                                   .status(
                                       RepositorySpecSecurityAndAnalysisCodeSecurityStatus.ENABLED)
+                                  .build())
+                          .secretScanning(
+                              RepositorySpecSecurityAndAnalysisSecretScanning.builder()
+                                  .status(
+                                      RepositorySpecSecurityAndAnalysisSecretScanningStatus.ENABLED)
+                                  .build())
+                          .secretScanningAiDetection(
+                              RepositorySpecSecurityAndAnalysisSecretScanningAiDetection.builder()
+                                  .status(
+                                      RepositorySpecSecurityAndAnalysisSecretScanningAiDetectionStatus
+                                          .DISABLED)
+                                  .build())
+                          .secretScanningNonProviderPatterns(
+                              RepositorySpecSecurityAndAnalysisSecretScanningNonProviderPatterns
+                                  .builder()
+                                  .status(
+                                      RepositorySpecSecurityAndAnalysisSecretScanningNonProviderPatternsStatus
+                                          .ENABLED)
+                                  .build())
+                          .secretScanningPushProtection(
+                              RepositorySpecSecurityAndAnalysisSecretScanningPushProtection
+                                  .builder()
+                                  .status(
+                                      RepositorySpecSecurityAndAnalysisSecretScanningPushProtectionStatus
+                                          .ENABLED)
                                   .build())
                           .build())
                   .automatedSecurityFixes(true)

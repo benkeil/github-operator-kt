@@ -13,7 +13,7 @@ crd-import:
 
 [working-directory('manifests/dist')]
 clean:
-    rm -f ./*
+    rm -rf ./*
 
 manifests: clean
     ./gradlew manifests:run

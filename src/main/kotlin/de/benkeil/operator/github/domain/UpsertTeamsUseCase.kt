@@ -14,8 +14,10 @@ class UpsertTeamsUseCase(
     val spec = controller()
     val owner = spec.owner
     val name = spec.name
+    val ignoredTeams = listOf("ec-security-champs", "githubsecurity", "security-monitoring")
 
-    val existingTeamPermissions = gitHubService.getTeamPermissions(owner, name)
+    val existingTeamPermissions =
+        gitHubService.getTeamPermissions(owner, name).filter { !ignoredTeams.contains(it.slug) }
 
     // Delete existing team that are not in the input
     existingTeamPermissions

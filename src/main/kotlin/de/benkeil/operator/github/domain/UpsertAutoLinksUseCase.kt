@@ -1,6 +1,7 @@
 package de.benkeil.operator.github.domain
 
-import de.benkeil.operator.github.domain.service.AutoLink
+import de.benkeil.operator.github.domain.model.AutoLink
+import de.benkeil.operator.github.domain.service.AutoLinkRequest
 import de.benkeil.operator.github.domain.service.GitHubService
 import io.github.oshai.kotlinlogging.KotlinLogging
 
@@ -16,7 +17,7 @@ class UpsertAutoLinksUseCase(
 
     // Get existing auto links
     val existingAutoLinks = gitHubService.getAutoLinks(owner, name)
-    logger.debug { "Found auto links: $existingAutoLinks" }
+    logger.info { "Found auto links: $existingAutoLinks" }
 
     // Delete existing auto links that are not in the input
     val (delete, proceed) =
@@ -44,7 +45,7 @@ class UpsertAutoLinksUseCase(
           gitHubService.createAutoLink(
               owner,
               name,
-              spec.autoLinks.first { it.keyPrefix == autoLink.keyPrefix },
+              spec.autoLinks.first { it.keyPrefix == autoLink.keyPrefix }.toAutoLinkRequest(),
           )
         }
 
@@ -53,7 +54,7 @@ class UpsertAutoLinksUseCase(
         .filter { autoLink -> proceed.none { it.keyPrefix == autoLink.keyPrefix } }
         .forEach { autoLink ->
           logger.info { "Creating auto link with key prefix '${autoLink.keyPrefix}'" }
-          gitHubService.createAutoLink(owner, name, autoLink)
+          gitHubService.createAutoLink(owner, name, autoLink.toAutoLinkRequest())
         }
   }
 
@@ -63,3 +64,10 @@ class UpsertAutoLinksUseCase(
       val autoLinks: List<AutoLink>,
   )
 }
+
+fun AutoLink.toAutoLinkRequest(): AutoLinkRequest =
+    AutoLinkRequest(
+        keyPrefix = keyPrefix,
+        urlTemplate = urlTemplate,
+        isAlphanumeric = isAlphanumeric,
+    )

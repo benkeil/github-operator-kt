@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import de.benkeil.operator.github.domain.service.AutoLink
+import de.benkeil.operator.github.domain.service.AutoLinkRequest
 import de.benkeil.operator.github.domain.service.AutoLinkResponse
 import de.benkeil.operator.github.domain.service.Collaborator
 import de.benkeil.operator.github.domain.service.CollaboratorRequest
@@ -137,7 +137,7 @@ class HttpGitHubService(
   override suspend fun createAutoLink(
       owner: String,
       name: String,
-      autoLink: AutoLink
+      autoLink: AutoLinkRequest
   ): AutoLinkResponse =
       client
           .post("repos/$owner/$name/autolinks") {
