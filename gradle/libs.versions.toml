@@ -6,7 +6,8 @@ kubernetes = { module = "io.kubernetes:client-java", version = "24.0.0" }
 operator-framework-bom = { module = "io.javaoperatorsdk:operator-framework-bom", version = "5.1.2" }
 operator-framework = { module = "io.javaoperatorsdk:operator-framework", version = "5.1.2" }
 micrometer-support = { module = "io.javaoperatorsdk:micrometer-support", version = "5.1.2" }
-crd-generator-api = { module = "io.fabric8:crd-generator-api", version = "7.3.1" }
+crd-generator-api = { module = "io.fabric8:crd-generator-api-v2", version = "7.3.1" }
+crd-generator-collector = { module = "io.fabric8:crd-generator-collector", version = "7.3.1" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
 ktor-client-auth = { module = "io.ktor:ktor-client-auth", version.ref = "ktor" }
@@ -18,10 +19,24 @@ kotlin-logging-jvm = { module = "io.github.oshai:kotlin-logging-jvm", version = 
 
 kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5", version = "5.9.0" }
 kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version = "5.9.0" }
+mockk = { module = "io.mockk:mockk", version = "1.14.5" }
+
+cdk8s = { module = "org.cdk8s:cdk8s", version = "2.69.34" }
+cdk8s-plus = { module = "org.cdk8s:cdk8s-plus-32", version = "2.1.4" }
 
 [bundles]
 platform = [
     "operator-framework-bom",
+]
+
+buildscript = [
+    "crd-generator-api",
+    "crd-generator-collector",
+]
+
+bootstrap = [
+    "cdk8s",
+    "cdk8s-plus",
 ]
 
 implementation = [
@@ -42,6 +57,7 @@ implementation = [
 testImplementation = [
     "kotest-runner-junit5",
     "kotest-assertions-core",
+    "mockk",
 ]
 
 [plugins]

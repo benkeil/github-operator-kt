@@ -1,7 +1,9 @@
 package de.benkeil.operator.github.domain.service
 
+import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
-import com.fasterxml.jackson.annotation.JsonTypeName
+import io.fabric8.generator.annotation.Required
 
 interface GitHubService {
   suspend fun getRepository(owner: String, name: String): GitHubRepositoryResponse?
@@ -23,7 +25,7 @@ interface GitHubService {
   suspend fun createAutoLink(
       owner: String,
       name: String,
-      autoLink: AutoLinkRequest
+      autoLink: AutoLink
   ): AutoLinkResponse
 
   suspend fun deleteAutoLink(owner: String, name: String, autoLinkId: Int)
@@ -51,46 +53,50 @@ interface GitHubService {
 
   suspend fun getRuleSets(owner: String, name: String): List<RuleSetResponse>
 
-  suspend fun createRuleSet(owner: String, name: String, ruleSet: RuleSetRequest): RuleSetResponse
+  suspend fun createRuleSet(owner: String, name: String, ruleSet: RuleSet): RuleSetResponse
 
-  suspend fun updateRuleSet(
-      owner: String,
-      name: String,
-      id: Int,
-      ruleSet: RuleSetRequest
-  ): RuleSetResponse
+  suspend fun updateRuleSet(owner: String, name: String, id: Int, ruleSet: RuleSet): RuleSetResponse
 
   suspend fun deleteRuleSet(owner: String, name: String, id: Int)
 }
 
-data class RuleSetRequest(
-    val name: String,
-    val target: String,
-    val enforcement: String,
+data class RuleSet(
+    @Required val name: String,
+    @Required val target: String,
+    @Required val enforcement: String,
     val conditions: RuleSetCondition,
-    val rules: List<Rule>,
+    val rules: List<Rule<*>>,
 )
 
-data class RuleSetCondition(val refName: RefName)
+data class RuleSetCondition(@Required val refName: RefName)
 
-data class RefName(val include: List<String>, val exclude: List<String>)
+data class RefName(@Required val include: List<String>, @Required val exclude: List<String>)
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
-sealed interface Rule {
-  @JsonTypeName("deletion") class Deletion : Rule
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "type")
+@JsonSubTypes(
+    value =
+        [
+            JsonSubTypes.Type(value = Rule.Deletion::class, name = "deletion"),
+            JsonSubTypes.Type(value = Rule.NonFastForward::class, name = "non_fast_forward"),
+            JsonSubTypes.Type(value = Rule.PullRequest::class, name = "pull_request"),
+        ])
+abstract class Rule<P>(@Required val type: String, open val parameters: P? = null) {
+  class Deletion : Rule<Unit>("deletion")
 
-  @JsonTypeName("non_fast_forward") class NonFastForward : Rule
+  class NonFastForward : Rule<Unit>("non_fast_forward")
 
-  @JsonTypeName("pull_request")
-  data class PullRequest(val parameters: Parameters) : Rule {
+  // @JsonTypeName("pull_request")
+  data class PullRequest(override val parameters: Parameters) :
+      Rule<PullRequest.Parameters>("pull_request") {
     data class Parameters(
         val allowedMergeMethods: List<MergeMethods>?,
         val automaticCopilotCodeReviewEnabled: Boolean?,
-        val dismissStaleReviewsOnPush: Boolean,
-        val requireCodeOwnerReview: Boolean,
-        val requireLastPushApproval: Boolean,
-        val requiredApprovingReviewCount: Int,
-        val requiredReviewThreadResolution: Boolean,
+        @Required val dismissStaleReviewsOnPush: Boolean,
+        @Required val requireCodeOwnerReview: Boolean,
+        @Required val requireLastPushApproval: Boolean,
+        @Required val requiredApprovingReviewCount: Int,
+        @Required val requiredReviewThreadResolution: Boolean,
     )
   }
 }
@@ -110,7 +116,7 @@ data class RuleSetResponse(
     val target: String,
     val enforcement: String,
     val conditions: RuleSetCondition?,
-    val rules: List<Rule>?,
+    val rules: List<Rule<*>>?,
 )
 
 data class CreateGitHubRepositoryRequest(
@@ -231,17 +237,10 @@ data class User(
     val login: String,
 )
 
-data class Team(
-    val id: Int,
-    val name: String,
-    val slug: String,
-    val organization: User,
-)
-
-data class AutoLinkRequest(
+data class AutoLink(
     val keyPrefix: String,
     val urlTemplate: String,
-    val isAlphanumeric: Boolean,
+    @get:JsonProperty("isAlphanumeric") val isAlphanumeric: Boolean,
 )
 
 data class AutoLinkResponse(

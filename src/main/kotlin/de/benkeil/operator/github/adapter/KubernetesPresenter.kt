@@ -7,5 +7,5 @@ class KubernetesPresenter : Presenter<GitHubRepositoryStatus, GitHubRepositorySt
   override fun ok(status: GitHubRepositoryStatus): GitHubRepositoryStatus = status
 
   override fun error(status: GitHubRepositoryStatus, error: Throwable): GitHubRepositoryStatus =
-      status.apply { errors.add(error.message ?: "Unknown error, see log for details") }
+      status.apply { errorMessages.add(error.message ?: "Unknown error, see log for details") }
 }

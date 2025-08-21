@@ -1,15 +1,14 @@
 package de.benkeil.operator.github.domain.model
 
-import de.benkeil.operator.github.domain.service.AutoLinkRequest
+import de.benkeil.operator.github.domain.service.AutoLink
 import de.benkeil.operator.github.domain.service.MergeCommitMessage
 import de.benkeil.operator.github.domain.service.MergeCommitTitle
-import de.benkeil.operator.github.domain.service.RuleSetRequest
+import de.benkeil.operator.github.domain.service.RuleSet
 import de.benkeil.operator.github.domain.service.SecurityAndAnalysis
 import de.benkeil.operator.github.domain.service.SquashMergeCommitMessage
 import de.benkeil.operator.github.domain.service.SquashMergeCommitTitle
 import de.benkeil.operator.github.domain.service.Visibility
-import io.fabric8.generator.annotation.Default
-import io.fabric8.generator.annotation.ValidationRule
+import io.fabric8.generator.annotation.Required
 import io.fabric8.kubernetes.api.model.Namespaced
 import io.fabric8.kubernetes.client.CustomResource
 import io.fabric8.kubernetes.model.annotation.Group
@@ -25,19 +24,13 @@ class GitHubRepositoryResource :
   companion object {
     const val GROUP = "github.platform.benkeil.de"
     const val API_VERSION = "v1alpha1"
-    const val KIND = "GitHubRepository"
+    const val KIND = "Repository"
   }
 }
 
-object Rules {
-  const val IMMUTABLE = "oldSelf == null || self == oldSelf"
-}
-
 data class GitHubRepositorySpec(
-    val owner: String,
-    val name: String,
-    @ValidationRule(Rules.IMMUTABLE) val ownerTeam: String,
-    @ValidationRule(Rules.IMMUTABLE) @Default("admin") val ownerRole: String = "admin",
+    @Required val owner: String,
+    @Required val name: String,
     val description: String? = null,
     val private: Boolean? = null,
     val visibility: Visibility? = null,
@@ -56,18 +49,19 @@ data class GitHubRepositorySpec(
     val securityAndAnalysis: SecurityAndAnalysis? = null,
     val defaultBranch: String? = null,
     val automatedSecurityFixes: Boolean? = null,
-    val autoLinks: List<AutoLinkRequest> = emptyList(),
-    val teamPermissions: Map<String, String> = emptyMap(),
-    val collaborators: Map<String, String> = emptyMap(),
-    val rulesets: List<RuleSetRequest> = emptyList(),
+    val autoLinks: List<AutoLink> = emptyList(),
+    val teams: List<Permission> = emptyList(),
+    val collaborators: List<Permission> = emptyList(),
+    val rulesets: List<RuleSet> = emptyList(),
+)
+
+data class Permission(
+    @Required val name: String,
+    @Required val permission: String,
 )
 
 data class GitHubRepositoryStatus(
     val createdAt: OffsetDateTime,
     var updatedAt: OffsetDateTime? = null,
-    var autoLinkKeyPrefixes: Map<String, Int> = mapOf(),
-    var ruleSetNames: Map<String, Int> = mapOf(),
-    var teamPermissionSlugs: Set<String> = setOf(),
-    var collaboratorLogins: Set<String> = setOf(),
-    val errors: MutableList<String> = mutableListOf(),
+    val errorMessages: MutableList<String> = mutableListOf(),
 )

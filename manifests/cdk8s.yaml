@@ -1,0 +1,6 @@
+language: java
+app: ../gradlew :bootstrap:run
+importDirectory: src/main/java/
+imports:
+  - ../build/resources/main/repositories.github.platform.benkeil.de-v1.yml
+  - ../crd/repositories.github.platform.benkeil.de-v1.yml

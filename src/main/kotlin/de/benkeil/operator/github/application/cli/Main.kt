@@ -23,7 +23,7 @@ fun main() {
   runBlocking {
     val gitHubToken = System.getenv("GITHUB_TOKEN")
     val gitHubService = HttpGitHubService(gitHubToken)
-    val useCase = UpsertRepositoryUseCase(gitHubService)
+    // val useCase = UpsertRepositoryUseCase(gitHubService)
     val presenter = KubernetesPresenter()
 
     resource2file("/manifests")
@@ -37,10 +37,10 @@ fun main() {
               Path("")
                   .resolve("src/main/resources/manifests/${file.nameWithoutExtension}.status.json")
                   .toFile()
-          val status = useCase.execute({ controller(file, statusFile) }, presenter)
-          val newStatus = mapper.writeValueAsString(status)
-          statusFile.writeText(newStatus)
-          println(newStatus)
+          // val status = useCase.execute({ controller(file, statusFile) }, presenter)
+          // val newStatus = mapper.writeValueAsString(status)
+          // statusFile.writeText(newStatus)
+          // println(newStatus)
         }
   }
 }

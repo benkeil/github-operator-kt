@@ -6,14 +6,14 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import de.benkeil.operator.github.domain.service.AutoLinkRequest
+import de.benkeil.operator.github.domain.service.AutoLink
 import de.benkeil.operator.github.domain.service.AutoLinkResponse
 import de.benkeil.operator.github.domain.service.Collaborator
 import de.benkeil.operator.github.domain.service.CollaboratorRequest
 import de.benkeil.operator.github.domain.service.CreateGitHubRepositoryRequest
 import de.benkeil.operator.github.domain.service.GitHubRepositoryResponse
 import de.benkeil.operator.github.domain.service.GitHubService
-import de.benkeil.operator.github.domain.service.RuleSetRequest
+import de.benkeil.operator.github.domain.service.RuleSet
 import de.benkeil.operator.github.domain.service.RuleSetResponse
 import de.benkeil.operator.github.domain.service.TeamPermission
 import de.benkeil.operator.github.domain.service.TeamPermissionRequest
@@ -137,7 +137,7 @@ class HttpGitHubService(
   override suspend fun createAutoLink(
       owner: String,
       name: String,
-      autoLink: AutoLinkRequest
+      autoLink: AutoLink
   ): AutoLinkResponse =
       client
           .post("repos/$owner/$name/autolinks") {
@@ -270,7 +270,7 @@ class HttpGitHubService(
   override suspend fun createRuleSet(
       owner: String,
       name: String,
-      ruleSet: RuleSetRequest
+      ruleSet: RuleSet
   ): RuleSetResponse =
       client
           .post("repos/$owner/$name/rulesets") {
@@ -289,7 +289,7 @@ class HttpGitHubService(
       owner: String,
       name: String,
       id: Int,
-      ruleSet: RuleSetRequest
+      ruleSet: RuleSet
   ): RuleSetResponse =
       client
           .put("repos/$owner/$name/rulesets/$id") {
