@@ -256,14 +256,26 @@ class HttpGitHubService(
   }
 
   override suspend fun getRuleSets(owner: String, name: String): List<RuleSetResponse> =
-      client.get("repos/$owner/$name/rulesets").let { response ->
+      client
+          .get("repos/$owner/$name/rulesets")
+          .let { response ->
+            if (response.status.isSuccess()) {
+              mapper.readValue(
+                  response.bodyAsBytes(),
+                  object : TypeReference<List<RuleSetResponse>>() {},
+              )
+            } else {
+              error("Failed to get rule sets: ${response.status.value}")
+            }
+          }
+          .map { getRuleSetById(owner, name, it.id) }
+
+  private suspend fun getRuleSetById(owner: String, name: String, id: Int): RuleSetResponse =
+      client.get("repos/$owner/$name/rulesets/$id").let { response ->
         if (response.status.isSuccess()) {
-          mapper.readValue(
-              response.bodyAsBytes(),
-              object : TypeReference<List<RuleSetResponse>>() {},
-          )
+          mapper.readValue(response.bodyAsBytes(), RuleSetResponse::class.java)
         } else {
-          error("Failed to get rule sets: ${response.status.value}")
+          error("Failed to get rule set by ID: ${response.status.value}")
         }
       }
 

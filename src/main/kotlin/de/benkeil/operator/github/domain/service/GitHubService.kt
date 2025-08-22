@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
 import io.fabric8.generator.annotation.Required
+import org.apache.commons.lang3.builder.HashCodeBuilder
 
 interface GitHubService {
   suspend fun getRepository(owner: String, name: String): GitHubRepositoryResponse?
@@ -82,9 +83,25 @@ data class RefName(@Required val include: List<String>, @Required val exclude: L
             JsonSubTypes.Type(value = Rule.PullRequest::class, name = "pull_request"),
         ])
 abstract class Rule<P>(@Required val type: String, open val parameters: P? = null) {
-  object Deletion : Rule<Unit>("deletion")
+  object Deletion : Rule<Unit>("deletion") {
+    override fun equals(other: Any?): Boolean {
+      if (this === other) return true
+      if (other !is Deletion) return false
+      return type == other.type
+    }
 
-  object NonFastForward : Rule<Unit>("non_fast_forward")
+    override fun hashCode(): Int = HashCodeBuilder().append(type).toHashCode()
+  }
+
+  object NonFastForward : Rule<Unit>("non_fast_forward") {
+    override fun equals(other: Any?): Boolean {
+      if (this === other) return true
+      if (other !is Deletion) return false
+      return type == other.type
+    }
+
+    override fun hashCode(): Int = HashCodeBuilder().append(type).toHashCode()
+  }
 
   // @JsonTypeName("pull_request")
   data class PullRequest(override val parameters: Parameters) :
@@ -98,6 +115,12 @@ abstract class Rule<P>(@Required val type: String, open val parameters: P? = nul
         @Required val requiredApprovingReviewCount: Int,
         @Required val requiredReviewThreadResolution: Boolean,
     )
+
+    override fun equals(other: Any?): Boolean {
+      if (this === other) return true
+      if (other !is Deletion) return false
+      return type == other.type && parameters == other.parameters
+    }
   }
 }
 

@@ -28,6 +28,10 @@ class UpsertRuleSetsUseCase(
     // Create or update rule sets
     input.rulesets.forEach { ruleSet ->
       val existingRuleSet = existingRuleSets.find { it.name == ruleSet.name }
+      println("matches")
+      println(existingRuleSet?.toRuleSet())
+      println(ruleSet)
+      println(existingRuleSet?.toRuleSet()?.equals(ruleSet))
       if (existingRuleSet == null) {
         logger.info { "Create rule set ${ruleSet.name}" }
         gitHubService.createRuleSet(owner, name, ruleSet)
@@ -44,6 +48,15 @@ class UpsertRuleSetsUseCase(
       val rulesets: List<RuleSet>,
   )
 }
+
+fun RuleSetResponse.toRuleSet(): RuleSet =
+    RuleSet(
+        name = name,
+        target = target,
+        enforcement = enforcement,
+        conditions = conditions,
+        rules = rules,
+    )
 
 fun RuleSetResponse.isEqualTo(other: RuleSet): Boolean {
   return this.name == other.name &&

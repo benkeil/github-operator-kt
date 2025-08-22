@@ -11,6 +11,12 @@ Content-Type: application/json
 }
 
 ###
+# @name getRuleSets
+GET https://api.github.com/repos/{{owner}}/{{name}}/rulesets
+Authorization: Bearer {{$env.GITHUB_TOKEN}}
+Content-Type: application/json
+
+###
 # @name upsertTeamPermission
 PUT https://api.github.com/orgs/{{owner}}/teams/{{team}}/repos/{{owner}}/{{name}}
 Authorization: Bearer {{$env.GITHUB_TOKEN}}
