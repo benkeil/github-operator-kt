@@ -54,3 +54,8 @@ if (specOwners == repoOwners) {
 }
 
 ```
+
+## Questions
+
+- How to change the ownership later?
+- How to remove one team from ownership?
