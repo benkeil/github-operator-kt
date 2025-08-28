@@ -7,6 +7,27 @@ import io.fabric8.generator.annotation.Required
 import org.apache.commons.lang3.builder.HashCodeBuilder
 
 interface GitHubService {
+  suspend fun getEnvironmentVariable(
+      owner: String,
+      name: String,
+      environment: String,
+      variableName: String,
+  ): String
+
+  suspend fun createEnvironment(
+      owner: String,
+      name: String,
+      environment: String,
+  )
+
+  suspend fun createEnvironmentVariable(
+      owner: String,
+      name: String,
+      environment: String,
+      variableName: String,
+      value: String,
+  )
+
   suspend fun getRepository(owner: String, name: String): GitHubRepositoryResponse?
 
   suspend fun createRepository(
@@ -135,6 +156,7 @@ data class CreateGitHubRepositoryRequest(
     val private: Boolean?,
     val visibility: Visibility?,
     val autoInit: Boolean?,
+    val defaultBranch: String?,
 )
 
 data class UpdateGitHubRepositoryRequest(
@@ -218,6 +240,7 @@ data class GitHubRepositoryResponse(
     val private: Boolean?,
     val visibility: Visibility?,
     val autoInit: Boolean?,
+    val defaultBranch: String?,
     val deleteBranchOnMerge: Boolean?,
     val allowAutoMerge: Boolean?,
     val allowSquashMerge: Boolean?,

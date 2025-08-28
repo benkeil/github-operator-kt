@@ -17,7 +17,7 @@ class UpsertAutoLinksUseCase(
 
     // Get existing auto links
     val existingAutoLinks = gitHubService.getAutoLinks(owner, name)
-    logger.info { "Found auto links: $existingAutoLinks" }
+    logger.debug { "Found auto links: $existingAutoLinks" }
 
     // Delete existing auto links that are not in the input
     val (delete, proceed) =

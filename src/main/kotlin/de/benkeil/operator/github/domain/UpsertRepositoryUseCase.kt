@@ -21,6 +21,11 @@ class UpsertRepositoryUseCase(
 ) {
   private val logger = KotlinLogging.logger {}
 
+  companion object {
+    const val ENVIRONMENT = "github-operator"
+    const val MANAGED_BY_VARIABLE = "MANGED_BY_NAMESPACE"
+  }
+
   suspend fun <T> execute(
       controller: () -> GitHubRepositoryResource,
       presenter: Presenter<GitHubRepositoryStatus, T>,
@@ -36,8 +41,22 @@ class UpsertRepositoryUseCase(
     if (repository == null) {
       logger.info { "Repository $owner/$name does not exist, creating it." }
       gitHubService.createRepository(resource.toCreateGitHubRepositoryRequest())
-      // TODO poll and wait until the repository is created
-      // delay(5.seconds)
+      waitForCreation(owner, name)
+      gitHubService.createEnvironment(owner, name, ENVIRONMENT)
+      gitHubService.createEnvironmentVariable(
+          owner,
+          name,
+          ENVIRONMENT,
+          MANAGED_BY_VARIABLE,
+          resource.metadata.namespace,
+      )
+    }
+
+    val managedByNamespace =
+        gitHubService.getEnvironmentVariable(owner, name, ENVIRONMENT, MANAGED_BY_VARIABLE)
+    logger.info { "Repository must be managed by namespace $managedByNamespace" }
+    if (managedByNamespace != resource.metadata.namespace) {
+      error("Proof of ownership failed")
     }
 
     // TODO check if different from existing repository
@@ -86,6 +105,12 @@ class UpsertRepositoryUseCase(
     status.updatedAt = OffsetDateTime.now()
     return presenter.ok(status)
   }
+
+  suspend fun waitForCreation(owner: String, name: String) {
+    do {
+      delay(5.seconds)
+    } while (gitHubService.getRepository(owner, name)?.defaultBranch == null)
+  }
 }
 
 fun GitHubRepositoryResource.toCreateGitHubRepositoryRequest(): CreateGitHubRepositoryRequest =
@@ -97,6 +122,7 @@ fun GitHubRepositoryResource.toCreateGitHubRepositoryRequest(): CreateGitHubRepo
           private = private,
           visibility = visibility,
           autoInit = autoInit,
+          defaultBranch = defaultBranch,
       )
     }
 

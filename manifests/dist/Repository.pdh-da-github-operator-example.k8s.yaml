@@ -13,8 +13,6 @@ spec:
   collaborators:
     - name: pdh-da-fkt-github
       permission: admin
-    - name: benkeil
-      permission: admin
   defaultBranch: main
   name: pdh-da_github-operator-example
   owner: otto-ec

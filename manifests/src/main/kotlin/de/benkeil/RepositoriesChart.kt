@@ -57,10 +57,6 @@ class RepositoriesChart(scope: Construct, environment: Environment) :
                               .name(environment.functionalTeamUser)
                               .permission("admin")
                               .build(),
-                          RepositorySpecCollaborators.builder()
-                              .name("benkeil")
-                              .permission("admin")
-                              .build(),
                       ))
                   .teams(
                       listOf(

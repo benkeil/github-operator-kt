@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import de.benkeil.operator.github.domain.service.AutoLinkRequest
 import de.benkeil.operator.github.domain.service.AutoLinkResponse
 import de.benkeil.operator.github.domain.service.Collaborator
@@ -60,6 +61,57 @@ class HttpGitHubService(
         defaultRequest { url(baseUrl) }
         install(Auth) { bearer { loadTokens { BearerTokens(gitHubToken, null) } } }
       }
+
+  override suspend fun getEnvironmentVariable(
+      owner: String,
+      name: String,
+      environment: String,
+      variableName: String
+  ): String =
+      client.get("repos/$owner/$name/environments/$environment/variables/$variableName").let {
+          response ->
+        if (response.status.isSuccess()) {
+          mapper.readValue<GitHubEnvironmentVariable>(response.bodyAsText()).value
+        } else if (response.status == HttpStatusCode.NotFound) {
+          error("Environment $environment or variable $variableName not found")
+        } else {
+          error("Failed to get variable: ${response.status.value}")
+        }
+      }
+
+  override suspend fun createEnvironment(owner: String, name: String, environment: String) {
+    client.put("repos/$owner/$name/environments/$environment").let { response ->
+      if (!response.status.isSuccess()) {
+        error("Failed to create environment: ${response.status.value} - ${response.bodyAsText()}")
+      }
+      logger.info { "Created environment $environment in $owner/$name" }
+    }
+  }
+
+  override suspend fun createEnvironmentVariable(
+      owner: String,
+      name: String,
+      environment: String,
+      variableName: String,
+      value: String
+  ) {
+    client
+        .post("repos/$owner/$name/environments/$environment/variables") {
+          contentType(Application.Json)
+          setBody(
+              mapper.writeValueAsString(
+                  GitHubEnvironmentVariable(
+                      name = variableName,
+                      value = value,
+                  )))
+        }
+        .let { response ->
+          if (!response.status.isSuccess()) {
+            error("Failed to set variable: ${response.status.value} - ${response.bodyAsText()}")
+          }
+          logger.info { "Set environment variable $variableName in $owner/$name/$environment" }
+        }
+  }
 
   override suspend fun getRepository(owner: String, name: String): GitHubRepositoryResponse? =
       client.get("repos/$owner/$name").let { response ->
@@ -326,3 +378,5 @@ class HttpGitHubService(
 }
 
 internal data class UpdateTeamPermissionRequest(val permission: String)
+
+internal data class GitHubEnvironmentVariable(val name: String, val value: String)
