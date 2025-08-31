@@ -1,0 +1,48 @@
+apiVersion: github.platform.benkeil.de/v1alpha1
+kind: Repository
+metadata:
+  name: pdh-da-kubernetes-cluster-platform
+  namespace: pdh-da
+spec:
+  autoInit: true
+  autoLinks:
+    - isAlphanumeric: false
+      keyPrefix: DV-
+      urlTemplate: https://otto-eg.atlassian.net/browse/DV-<num>
+  automatedSecurityFixes: true
+  collaborators:
+    - name: pdh-da-fkt-github
+      permission: admin
+  defaultBranch: main
+  name: pdh-da_kubernetes-cluster-platform
+  owner: otto-ec
+  private: true
+  rulesets:
+    - conditions:
+        refName:
+          exclude: []
+          include:
+            - ~DEFAULT_BRANCH
+      enforcement: active
+      name: Default
+      rules:
+        - type: deletion
+        - type: non_fast_forward
+      target: branch
+  securityAndAnalysis:
+    advancedSecurity:
+      status: ENABLED
+    codeSecurity:
+      status: ENABLED
+    secretScanning:
+      status: ENABLED
+    secretScanningAiDetection:
+      status: DISABLED
+    secretScanningNonProviderPatterns:
+      status: ENABLED
+    secretScanningPushProtection:
+      status: ENABLED
+  teams:
+    - name: pdh-distribution-analytics
+      permission: admin
+  visibility: INTERNAL
